@@ -65,8 +65,10 @@ func worker(id int, jobs <-chan Job, results chan<- Result, wg *sync.WaitGroup) 
 			}
 
 			for j := 0; j < readSize; j += 8 {
-				var num uint64
-				binary.LittleEndian.PutUint64(buffer[j:j+8], num)
+				// we messed up using this because it doesn't read a 'uint64' value from the buffer
+				// binary.LittleEndian.PutUint64(buffer[j:j+8], num)
+				// this does
+				num := binary.LittleEndian.Uint64(buffer[j : j+8])
 				if isPrime(num) {
 					primesCount++
 				}
@@ -99,8 +101,45 @@ func consolidator(results <-chan Result, done chan<- int) {
 	done <- totalPrimes
 }
 
+var generateData = flag.Bool("generate", false, "Generate binary data file for testing")
+
+func generateBinaryFile(filename string, count uint64) {
+	binaryFile, err := os.Create(filename)
+	if err != nil {
+		log.Fatalf("Cannot create binary file: %v", err)
+	}
+	defer binaryFile.Close()
+
+	// Create a readmeGEN.txt file for readable output
+	readmeFile, err := os.Create("readmeGEN.txt")
+	if err != nil {
+		log.Fatalf("Cannot create readme file: %v", err)
+	}
+	defer readmeFile.Close()
+
+	for i := uint64(1); i <= count; i++ {
+		// Write to binary file
+		if err := binary.Write(binaryFile, binary.LittleEndian, i); err != nil {
+			log.Fatalf("Failed to write to binary file: %v", err)
+		}
+
+		// Write to readable txt file
+		_, err := readmeFile.WriteString(fmt.Sprintf("%d\n", i))
+		if err != nil {
+			log.Fatalf("Failed to write to readme file: %v", err)
+		}
+	}
+}
+
 func main() {
 	flag.Parse()
+
+	if *generateData {
+
+		generateBinaryFile("newgen.bin", 10000) // file with 10000 numbers
+		fmt.Println("Data file generated.")
+		return
+	}
 
 	if *pathname == "" {
 		log.Fatal("Pathname is required")
