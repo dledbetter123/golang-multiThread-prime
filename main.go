@@ -110,12 +110,12 @@ func generateBinaryFile(filename string, count uint64) {
 	}
 	defer binaryFile.Close()
 
-	// Create a readmeGEN.txt file for readable output
-	readmeFile, err := os.Create("readmeGEN.txt")
-	if err != nil {
-		log.Fatalf("Cannot create readme file: %v", err)
-	}
-	defer readmeFile.Close()
+	// readable output for generation
+	// readmeFile, err := os.Create("readmeGEN.txt")
+	// if err != nil {
+	// 	log.Fatalf("Cannot create readme file: %v", err)
+	// }
+	// defer readmeFile.Close()
 
 	for i := uint64(1); i <= count; i++ {
 		// Write to binary file
@@ -124,23 +124,30 @@ func generateBinaryFile(filename string, count uint64) {
 		}
 
 		// Write to readable txt file
-		_, err := readmeFile.WriteString(fmt.Sprintf("%d\n", i))
-		if err != nil {
-			log.Fatalf("Failed to write to readme file: %v", err)
-		}
+		// _, err := readmeFile.WriteString(fmt.Sprintf("%d\n", i))
+		// if err != nil {
+		// 	log.Fatalf("Failed to write to readme file: %v", err)
+		// }
 	}
 }
 
 func main() {
 	flag.Parse()
 
+	/*               GENERATION!!!!!             */
 	if *generateData {
 
-		generateBinaryFile("newgen.bin", 10000) // file with 10000 numbers
+		generateBinaryFile("newgen.bin", 1000000) // file with 1,000,000 numbers
 		fmt.Println("Data file generated.")
 		return
 	}
+	/*               GENERATION!!!!!             */
 
+	/*					  v						 */
+
+	/*               CALCULATION!!!!!             */
+	fmt.Println(pathname)
+	fmt.Println(*pathname)
 	if *pathname == "" {
 		log.Fatal("Pathname is required")
 	}
@@ -170,4 +177,5 @@ func main() {
 
 	totalPrimes := <-done
 	fmt.Printf("Total primes: %d\n", totalPrimes)
+	/*               CALCULATION!!!!!             */
 }
