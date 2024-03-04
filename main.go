@@ -101,44 +101,70 @@ func consolidator(results <-chan Result, done chan<- int) {
 	done <- totalPrimes
 }
 
-var generateData = flag.Bool("generate", false, "Generate binary data file for testing")
+var (
+	generateData = flag.Bool("generate", false, " binary data file for testing")
+	mini         = flag.Uint64("min", 0, "Minimum value to write, default 0")
+	max          = flag.Uint64("max", 1000000, "maximum value to write, default 1,000,000")
+	rng          = flag.Uint64("rng", 1000000, "how many values to write")
+	randomize    = flag.Bool("random", true, "Generate values randomly [T] or sequentially ")
+)
 
-func generateBinaryFile(filename string, count uint64) {
+func generateBinaryFile(filename string, mini uint64, max uint64, numSamples uint64, randomize bool) {
+	if mini > max {
+		log.Fatalf("Minimum value cannot be greater than maximum value")
+	}
+
+	maxSamples := max - mini + 1
+	if numSamples > maxSamples {
+		log.Fatalf("Number of samples (%d) cannot exceed the range", numSamples)
+	}
+
 	binaryFile, err := os.Create(filename)
 	if err != nil {
 		log.Fatalf("Cannot create binary file: %v", err)
 	}
 	defer binaryFile.Close()
 
-	// readable output for generation
-	// readmeFile, err := os.Create("readmeGEN.txt")
-	// if err != nil {
-	// 	log.Fatalf("Cannot create readme file: %v", err)
-	// }
-	// defer readmeFile.Close()
+	readmeFile, err := os.Create("readmeGEN.txt")
+	if err != nil {
+		log.Fatalf("Cannot create text file: %v", err)
+	}
+	defer readmeFile.Close()
 
-	for i := uint64(1); i <= count; i++ {
-		// Write to binary file
-		if err := binary.Write(binaryFile, binary.LittleEndian, i); err != nil {
+	// rand.Seed(time.Now().UnixNano())
+
+	for i := uint64(0); i < numSamples; i++ {
+		var num uint64
+		if randomize {
+			num = mini + uint64(rand.Int63n(int64(max-mini+1)))
+		} else {
+			// make sure we don't exceed max
+			num = mini + (i % (max - mini + 1))
+		}
+
+		if err := binary.Write(binaryFile, binary.LittleEndian, num); err != nil {
 			log.Fatalf("Failed to write to binary file: %v", err)
 		}
 
-		// Write to readable txt file
-		// _, err := readmeFile.WriteString(fmt.Sprintf("%d\n", i))
-		// if err != nil {
-		// 	log.Fatalf("Failed to write to readme file: %v", err)
-		// }
+		if i < 100 {
+			_, err := readmeFile.WriteString(fmt.Sprintf("%d\n", num))
+			if err != nil {
+				log.Fatalf("Failed to write to readme file: %v", err)
+			}
+		}
 	}
 }
 
 func main() {
+	rand.Seed(time.Now().UnixNano())
 	flag.Parse()
 
 	/*               GENERATION!!!!!             */
 	if *generateData {
 
-		generateBinaryFile("newgen.bin", 1000000) // file with 1,000,000 numbers
-		fmt.Println("Data file generated.")
+		generateBinaryFile("newgen.dat", *mini, *max, *rng, *randomize) // file going up to 500,000
+		fmt.Printf("Data file generated, min=%d, max=%d, rng=%d Note the values generated are WITH replacement when random is enabled.\n", *mini, *max, *rng)
+		fmt.Println("This was tested on ranges 1,000-1 billion to baseline accurate prime counting")
 		return
 	}
 	/*               GENERATION!!!!!             */
@@ -157,8 +183,8 @@ func main() {
 		log.Fatalf("Failed to get file stats: %v", err)
 	}
 
-	jobs := make(chan Job, 100)
-	results := make(chan Result, 100)
+	jobs := make(chan Job, 100)       // job queue can hold up to 100 jobs
+	results := make(chan Result, 100) // queue entering consolidator can hold up to 100 results.
 	done := make(chan int)
 
 	var wg sync.WaitGroup
