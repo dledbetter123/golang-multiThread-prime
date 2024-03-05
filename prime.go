@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	pathname = flag.String("pathname", "", "Path to the binary file")
+	pathname = flag.String("pathname", "newgen.dat", "Path to the binary file")
 	M        = flag.Int("M", 1, "Number of worker threads")
 	N        = flag.Int("N", 64*1024, "Size of each segment in bytes")
 	C        = flag.Int("C", 1024, "Chunk size in bytes")
@@ -65,7 +65,7 @@ func worker(id int, jobs <-chan Job, results chan<- Result, wg *sync.WaitGroup) 
 			}
 
 			for j := 0; j < readSize; j += 8 {
-				// we messed up using this because it doesn't read a 'uint64' value from the buffer
+				// messed up using this because it doesn't read a 'uint64' value from the buffer
 				// binary.LittleEndian.PutUint64(buffer[j:j+8], num)
 				// this does
 				num := binary.LittleEndian.Uint64(buffer[j : j+8])
@@ -162,8 +162,8 @@ func main() {
 	/*               GENERATION!!!!!             */
 	if *generateData {
 
-		generateBinaryFile("newgen.dat", *mini, *max, *rng, *randomize) // file going up to 500,000
-		fmt.Printf("Data file generated, min=%d, max=%d, rng=%d Note the values generated are WITH replacement when random is enabled.\n", *mini, *max, *rng)
+		generateBinaryFile(*pathname, *mini, *max, *rng, *randomize) // file going up to 500,000
+		fmt.Printf("%s Data file generated, min=%d, max=%d, rng=%d Note the values generated are WITH replacement when random is enabled.\n", *pathname, *mini, *max, *rng)
 		fmt.Println("This was tested on ranges 1,000-1 billion to baseline accurate prime counting")
 		return
 	}
@@ -182,6 +182,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to get file stats: %v", err)
 	}
+
+	timer := time.Now().UnixMilli()
 
 	jobs := make(chan Job, 100)       // job queue can hold up to 100 jobs
 	results := make(chan Result, 100) // queue entering consolidator can hold up to 100 results.
@@ -202,6 +204,8 @@ func main() {
 	go consolidator(results, done)
 
 	totalPrimes := <-done
+	timer = time.Now().UnixMilli() - timer
 	fmt.Printf("Total primes: %d\n", totalPrimes)
+	fmt.Printf("Elasped Time (milliseconds): %d\n", timer)
 	/*               CALCULATION!!!!!             */
 }

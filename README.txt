@@ -2,8 +2,6 @@
 
 This Go program efficiently searches for prime numbers in binary files using a multithreaded approach. It divides the file into segments, assigns them to worker threads, and processes these segments concurrently to maximize resource utilization and minimize processing time.
 
-![Alt text](screenshot.png?raw=true "Diagram")
-
 ## Prerequisites
 
 - A binary file to process (see the section on generating test data)
